@@ -1,0 +1,25 @@
+.flexbox-container {
+    display: flex;
+    flex-direction: row;
+}
+
+
+input {
+    visibility: visible;
+}
+
+
+#select-compare:not(checked) ~ #date-2 {
+    visibility: hidden;
+}
+
+#select-compare:checked ~ #date-2 {
+    visibility: visible;
+}
+
+
+#map {
+    background: blue;
+}
+
+
