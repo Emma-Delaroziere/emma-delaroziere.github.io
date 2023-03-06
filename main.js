@@ -116,12 +116,12 @@ function get_projection(file, species, year) {
 function draw_dots(projected_coordinates, dot_group){
     dot_group.selectAll("circle")
 	.data(projected_coordinates)
-	.enter()
-	.append("circle")
+	.join("circle")
 	.attr("r","5")
 	.attr("cx", d => d[1])
 	.attr("cy", d => d[0])
 	.attr("fill", (dot_group.attr('id') == "simple") ? "green" : "red");
+    console.log("Dots updated:", year1);
 }
 
 function draw_matrix (matrix, labels) {
@@ -290,10 +290,11 @@ const coral_data = get_clean_entries("deep_sea_corals.csv").then(d => {
 	    if (archived_years.includes(this.value)) {	
 		year1 = this.value;
 		console.log("Year 1:", year1);
-		draw_dots(get_projection(d, current_species, year1),
+		draw_dots(get_projection(d, current_species, this.value),
 			  d3.select("#simple"));
-		draw_dots(get_projection(d, current_species, year1),
+		draw_dots(get_projection(d, current_species, this.value),
 			  d3.select("#compare"));
+		d3.select(`#${mode}`).style("opacity", "1");
 	    } else {
 		d3.selectAll(".dot-group").style("opacity", "0");
 	    }
