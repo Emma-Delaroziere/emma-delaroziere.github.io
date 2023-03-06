@@ -1,7 +1,7 @@
 // append svg
 
-width = 700;
-height = 400;
+width = 1200;
+height = 900;
 
 
 
@@ -39,7 +39,7 @@ get_json("data/ne_10m_ocean.geojson").then( oceans => {
 	.data(oceans.features)
 	.join("path")
 	.attr("d", path)
-	.style("fill", "blue");
+	.style("fill", "#62a0ea");
 
     //separate layers for simple date and comparison display
 
@@ -120,7 +120,7 @@ function draw_dots(projected_coordinates, dot_group){
 	.attr("r","5")
 	.attr("cx", d => d[1])
 	.attr("cy", d => d[0])
-	.attr("fill", (dot_group.attr('id') == "simple") ? "green" : "red");
+	.attr("fill", (dot_group.attr('id') == "simple") ? "#57e389" : "#ed333b");
     console.log("Dots updated:", year1);
 }
 
