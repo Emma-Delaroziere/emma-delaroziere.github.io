@@ -5,15 +5,18 @@
   <head>
     <link rel="stylesheet" href="main.css">
     <script src="https://d3js.org/d3.v7.min.js"></script>
-
   </head>
 
   <body>
-    <div class="flexbox-container">
+    <div class="container">
       
-      <div class="flex-col" id="map-column">
+      <div id="map-column" class="column">
 	<div id="parameter-selection">
-	  Sélection le mode d'affichage de la carte
+	  <label for="species-select">Choix d'une esp&egrave;ce</label>
+	  <select name="species" id="species-select">
+	  </select>
+	  <br>
+	  S&eacute;lection le mode d'affichage de la carte
 	  <br>
 	  <input type="radio" id="select-simple" name="mode" value="simple"
 		 class="mode-select" checked>
@@ -22,26 +25,23 @@
 		 class="mode-select">
 	  <label for="select-compare">Comparaison entre deux dates</label>
 	  <br>
-	  <input type="number" id="date-1" min="1900" max="2100">
+	  <input type="number" id="date-1" list="years-1">
+	  <datalist id="years-1">
+	  </datalist>
 	  <input type="number" id="date-2" min="1900" max="2100">
-	  <br>
-	  <label for="species-select">Choix d'une espèce</label>
-	  <select name="species" id="species-select">
-	  </select>
+	  
 	</div>
 	
 	<div id="map-container">
 	</div>
       </div>
 
-      <div id="region-column">
-	<div id="climate-info">
-	  Groupes climatiques
-	</div>
+      
+      <div id="region-column" class="column">
 	<div id="biodiversity">
-	  Côtoiement des espèces (matrice d'adjacence)
+	  C&ocirc;toiement des esp&egrave;ces (matrice d'adjacence)
 	  <div id="matrix-container">
-	    <svg id="correlation-matrix"></svg>
+	    <svg id="adjacency-matrix" width="1200" height="1200"></svg>
 	  </div>
 	</div>
       </div>

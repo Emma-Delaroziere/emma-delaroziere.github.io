@@ -3,13 +3,17 @@
 width = 700;
 height = 400;
 
-map = d3.select("#map-container")
+
+
+const map = d3.select("#map-container")
     .append("svg")
     .attr("id","map")
     .style("background", "white")
     .attr("width", `${width}`)
     .attr("height", `${height}`);
 
+
+const defs = d3.select("#adjacency-matrix").append("defs");
 
 // fetching and parsing geographic data
 
@@ -27,8 +31,8 @@ var path;
 
 // draw background
 
-get_json("ne_10m_ocean.geojson").then( oceans => {
-    projection = d3.geoConicConformal().fitSize([width, height], oceans);
+get_json("data/ne_10m_ocean.geojson").then( oceans => {
+    projection = d3.geoMercator().fitSize([width, height], oceans);
     path = d3.geoPath().projection(projection);
 
     map.selectAll("path")
@@ -37,6 +41,14 @@ get_json("ne_10m_ocean.geojson").then( oceans => {
 	.attr("d", path)
 	.style("fill", "blue");
 
+    //separate layers for simple date and comparison display
+
+    var g_simple = map.append("g").attr("id", "simple").attr("class", "dot-group");
+    var g_compare = map.append("g")
+	.attr("id", "compare")
+	.attr("class", "dot-group")
+	.style("opacity", "0");
+
     return map.node();
 });
 
@@ -44,7 +56,7 @@ get_json("ne_10m_ocean.geojson").then( oceans => {
 
 // fetching, parsing and filtering taxonomic data
 async function get_clean_entries (file_name) {
-    var clean_entries = await d3.csv(file_name)
+    var clean_entries = await d3.csv("data/"+file_name)
 	.then(function (d) {
 	    d.forEach(row => {
 		row.latitude = +row.latitude;
@@ -101,44 +113,120 @@ function get_projection(file, species, year) {
     return projection_list;
 }
 
-function draw_dots(projected_coordinates){
-    var dot_group = map.append("g").attr("id", "dot-group");
+function draw_dots(projected_coordinates, dot_group){
     dot_group.selectAll("circle")
 	.data(projected_coordinates)
 	.enter()
 	.append("circle")
-	.attr("r","20")
+	.attr("r","5")
 	.attr("cx", d => d[1])
 	.attr("cy", d => d[0])
-	.attr("fill", "green");
+	.attr("fill", (dot_group.attr('id') == "simple") ? "green" : "red");
 }
 
 function draw_matrix (matrix, labels) {
+    const margin =  {"top": 150, "left": 150};
     const square_side = 10;
-    d3.select("#matrix-container")
-	.attr("width", "1000")
-	.attr("height", "1000");
-    var svg = d3.select("#correlation-matrix");
+    const font_size = "12px";
+    const spacing = 3;
+    const extent = d3.extent(matrix, square => square.value);
+    
+    var color = d3.scaleLinear()
+	.domain(extent)
+	.range(["white", "black"]);
+    
+    var svg = d3.select("#adjacency-matrix");
+	//.attr("height", "1000")
+	//.attr("width", "1000");
     var square_group = svg.append("g").attr("id", "square-group");
+    
     square_group.selectAll("rect")
 	.data(species_matrix)
 	.enter()
 	.append("rect")
-	.attr("x", (square, index) => {
-	    return (index%labels.length)*(square_side+2);
+	.attr("y", (square) => {
+	    //console.log("y:",labels.indexOf(square.species_2)*(square_side+1));
+	    return labels.indexOf(square.species_2)*(square_side+spacing) + margin.top;
 	})
-	.attr("y", (square, index) => {
-	    return Math.trunc(index/labels.length)*(square_side+2);
+	.attr("x", (square) => {
+	    //console.log("x:", labels.indexOf(square.species_1)*(square_side+1));
+	    return labels.indexOf(square.species_1)*(square_side+spacing) + margin.left;
 	})
 	.attr("width", square_side)
 	.attr("height", square_side)
-	.attr("fill", "blue");
+	.attr("fill", square => color(square.value));
+    console.log("Matrix drawn");
+
+    // text for columns and rows
+
+    var column = svg.append("g")
+	.attr("id", "column-names")
+	.selectAll("text")
+	.data(species_list)
+	.enter()
+	.append("text")
+	.text(s => s)
+    	.style("font-size", font_size)
+	.style("text-anchor", "start")
+	.attr("transform", s => {
+	    return `translate(${labels.indexOf(s)*(square_side+spacing) + margin.left + square_side}, ${margin.top - spacing}) rotate(-90)`;
+	});
+     var row = svg.append("g")
+	.attr("id", "row-names")
+	.selectAll("text")
+	.data(species_list)
+	.enter()
+	.append("text")
+	.text(s => s)
+    	.style("font-size", font_size)
+	.style("text-anchor", "end")
+	.attr("transform", s => {
+	    return `translate( ${margin.left - spacing}, ${labels.indexOf(s)*(square_side+spacing) + margin.top + square_side})`;
+	});
+
+    // scale display
+
+    const gradient_width = 300;
+    const gradient_height = 25;
+
+    var gradient = defs.append("linearGradient")
+	.attr("id", "scale-gradient");
+
+    var stops = [{"offset":"0%", "stop-color":"white"}, {"offset":"100%", "stop-color":"black"}];
+    gradient.selectAll("stop")
+	.data(stops)
+	.enter()
+	.append("stop")
+	.attr("offset", c => c["offset"])
+	.attr("stop-color", c => c["stop-color"]);
+    
+    var scale = svg.append("g")
+	.attr("id", "color-scale");
+
+    scale.append("rect")
+	.attr("width", gradient_width)
+	.attr("height", gradient_height)
+	.attr("stroke", "black")
+	.attr("fill","url(#scale-gradient)");
+
+    var xscale = d3.scaleLinear()
+	 .domain(extent)
+	.range([0, gradient_width]);
+
+    var x_axis = d3.axisBottom().scale(xscale).ticks(5);
+    scale.append("g").call(x_axis).attr("transform", `translate(0, ${gradient_height})`);
+
+    scale.attr("transform",
+	       `translate(${margin.left}, ${10 + margin.top + species_list.length*(square_side+spacing)})`);
 }
 
 
 var species_list;
 var current_species = "";
 var species_matrix = [];
+var mode = "simple"; // mode d'affichage : 1 date ou 2 dates
+
+var archived_years = []
 var year1 = 2000;
 var year2 = 2000;
 
@@ -149,16 +237,17 @@ const coral_data = get_clean_entries("deep_sea_corals.csv").then(d => {
 
     // preparing data for matrix
     species_list.forEach(species1 => {
-	var species_square = {}
-	species_square.species_1 = species1;
+
 	species_list.forEach(species2 => {
-	    //TODO : function to calculate cooexistence between species
+	    var species_square = {};
+	    //TODO : function to calculate coexistence between species
+	    species_square.species_1 = species1;
 	    species_square.species_2 = species2;
 	    species_square.value = Math.random();
 	    species_matrix.push(species_square);
 	});
     });
-    console.log(species_matrix);
+    console.log("Species matrix:", species_matrix);
     draw_matrix(species_matrix, species_list);
 
     // appending available species for dropdown
@@ -166,22 +255,48 @@ const coral_data = get_clean_entries("deep_sea_corals.csv").then(d => {
 	.selectAll("option")
 	.data(species_list)
 	.join("option")
-	.attr("value", d => d)
-	.text(d => d);
+	.attr("value", s => s)
+	.text(s => s);
 
     // event listener for dropdown menu
     d3.select("#species-select").on("change", function () {
+	// change selected species
 	current_species = this.options[this.selectedIndex].value;
-	console.log("Current species:",current_species);
-	draw_dots(get_projection(d, "Alcyonacea", "2005"));
+	console.log("Current species:", current_species);
+
+	//update available dates for selection
+	archived_years = Object.keys(d[current_species]);
+	d3.select("#years-1")
+	    .selectAll("option")
+	    .data(archived_years)
+	    .join("option")
+	    .attr("value", y => y);
     });
+
+    //event listener for display mode change
+    d3.selectAll("input[name='mode']")
+	.on("change", function () {
+	    mode = this.value;
+	    d3.selectAll(".dot-group").style("opacity", "0");
+	    d3.select(`#${this.value}`).style("opacity","1");
+	    console.log("Mode: ", this.value);
+	});
+    
 
     //event listeners for date selectors
 
     d3.select("#date-1")
 	.on("change", function () {
-	    year1 = this.value;
-	    console.log("Year 1:", year1);
+	    if (archived_years.includes(this.value)) {	
+		year1 = this.value;
+		console.log("Year 1:", year1);
+		draw_dots(get_projection(d, current_species, year1),
+			  d3.select("#simple"));
+		draw_dots(get_projection(d, current_species, year1),
+			  d3.select("#compare"));
+	    } else {
+		d3.selectAll(".dot-group").style("opacity", "0");
+	    }
 	});
 
     d3.select("#date-2")
@@ -192,7 +307,3 @@ const coral_data = get_clean_entries("deep_sea_corals.csv").then(d => {
     
     return d
 });
-
-
-function updateAll () {
-}

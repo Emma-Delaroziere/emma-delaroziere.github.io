@@ -1,13 +1,10 @@
-.flexbox-container {
-    display: flex;
-    flex-direction: row;
-}
-
-
 input {
     visibility: visible;
 }
 
+.column {
+    float:left;
+}
 
 #select-compare:not(checked) ~ #date-2 {
     visibility: hidden;
@@ -16,10 +13,4 @@ input {
 #select-compare:checked ~ #date-2 {
     visibility: visible;
 }
-
-
-#map {
-    background: blue;
-}
-
 
