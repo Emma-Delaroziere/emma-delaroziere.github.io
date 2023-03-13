@@ -22,7 +22,7 @@ async function get_json(file_name) {
 	.then(function (d) {
 	    return d;
 	});
-    console.log(json);
+    console.log(file_name+" fetched: ", json);
     return json;
 }
 
@@ -31,7 +31,7 @@ var path;
 
 // draw background
 
-get_json("data/ne_10m_ocean.geojson").then( oceans => {
+get_json("data/ne_110m_ocean.geojson").then( oceans => {
     projection = d3.geoMercator().fitSize([width, height], oceans);
     path = d3.geoPath().projection(projection);
 
@@ -65,15 +65,9 @@ async function get_clean_entries (file_name) {
 	    
 	    grouped_by_species = Object.fromEntries(
 		d3.group(d, row => row.ScientificName));
-
-	    //filter insufficient data
-	    keys = [];
-	    Object.keys(grouped_by_species).map(k => {
-		if (grouped_by_species[k].length>=3000) {
-		    keys.push(k);
-		}
-	    });
-
+	    
+	    keys =  Object.keys(grouped_by_species);
+	    
 	//sort by year
 	for (const species in grouped_by_species) {
 	    grouped_by_year = Object.fromEntries(d3.group(
@@ -85,13 +79,9 @@ async function get_clean_entries (file_name) {
 	    grouped_by_species[species] = grouped_by_year;
 	}
 
-	    filtered_groups = {};
-	    keys.map(k => {
-		filtered_groups[k] = grouped_by_species[k];
-	    });
-	    return filtered_groups;
+	    return grouped_by_species;
 	});
-    console.log("Filtered:", clean_entries);
+    console.log("Entries: ", clean_entries);
     return clean_entries;
 }
 
@@ -232,23 +222,8 @@ var year2 = 2000;
 
 
 
-const coral_data = get_clean_entries("deep_sea_corals.csv").then(d => {
+const coral_data = get_clean_entries("deep_sea_corals(filtered).csv").then(d => {
     species_list = Object.keys(d);
-
-    // preparing data for matrix
-    species_list.forEach(species1 => {
-
-	species_list.forEach(species2 => {
-	    var species_square = {};
-	    //TODO : function to calculate coexistence between species
-	    species_square.species_1 = species1;
-	    species_square.species_2 = species2;
-	    species_square.value = Math.random();
-	    species_matrix.push(species_square);
-	});
-    });
-    console.log("Species matrix:", species_matrix);
-    draw_matrix(species_matrix, species_list);
 
     // appending available species for dropdown
     d3.select("#species-select")
@@ -307,4 +282,21 @@ const coral_data = get_clean_entries("deep_sea_corals.csv").then(d => {
 	});
     
     return d
+});
+
+const adjacency_data = get_json("/data/adjacency.json").then( matrix => {
+    species_list = Object.keys(matrix);
+
+    species_list.forEach(species1 => {
+
+	species_list.forEach(species2 => {
+	    var species_square = {};
+	    species_square.species_1 = species1;
+	    species_square.species_2 = species2;
+	    species_square.value = matrix[species1][species2];
+	    species_matrix.push(species_square);
+	});
+    });
+    //console.log("Species matrix:", species_matrix);
+    draw_matrix(species_matrix, species_list);
 });
